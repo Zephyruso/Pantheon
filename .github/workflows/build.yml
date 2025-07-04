@@ -1,0 +1,90 @@
+name: Build
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - name: release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.PANTHEON }}
+          config-file: .release-please-config.json
+
+  windows:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x64
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup pnpm
+        run: npm install -g pnpm
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.4'
+          cache: true
+      - name: Install Dependencies
+        run: |
+          pnpm install
+      - name: Build
+        run: pnpm build:win
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*setup.exe
+          token: ${{ secrets.PANTHEON }}
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+
+  linux:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup pnpm
+        run: npm install -g pnpm
+      - name: Install Dependencies
+        run: |
+          pnpm install
+      - name: Build
+        run: pnpm build:linux
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.deb
+            dist/*.rpm
+            dist/*.AppImage
+          token: ${{ secrets.PANTHEON }}
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
