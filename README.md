@@ -1,5 +1,3 @@
 # Pantheon
 
-开发中，写着玩的
-
-TUN和系统代理模式在linux和windows上已基本可用
+**Pantheon** is a modern desktop application for managing and monitoring network connections. It provides an intuitive interface for managing proxy configurations, monitoring network traffic, and controlling system proxy settings.
